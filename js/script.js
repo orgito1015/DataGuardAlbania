@@ -32,20 +32,30 @@ window.addEventListener('scroll', () => {
 const mobileMenu = document.getElementById('mobileMenu');
 const navLinks = document.querySelector('.nav-links');
 
+const closeMobileMenu = () => {
+    navLinks.classList.remove('open');
+    mobileMenu.classList.remove('active');
+};
+
 mobileMenu.addEventListener('click', () => {
-    navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+    navLinks.classList.toggle('open');
     mobileMenu.classList.toggle('active');
+});
+
+// Close mobile menu on link click
+navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', closeMobileMenu);
 });
 
 // Contact form submission
 const contactForm = document.getElementById('contactForm');
+const formSuccess = document.getElementById('formSuccess');
 
 contactForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    
-    // Show success message (replace with actual form submission)
-    alert('Faleminderit për mesazhin! Do të ju përgjigjem së shpejti.');
     contactForm.reset();
+    formSuccess.classList.add('visible');
+    setTimeout(() => formSuccess.classList.remove('visible'), 5000);
 });
 
 // Intersection Observer for fade-in animations
@@ -81,18 +91,31 @@ window.addEventListener('scroll', () => {
 });
 
 // Counter animation for stats
-const animateCounter = (element, target, duration = 2000) => {
-    const start = 0;
+const animateCounter = (element, duration = 2000) => {
+    const originalText = element.textContent.trim();
+    const numMatch = originalText.match(/[\d,]+/);
+    if (!numMatch) return;
+
+    const numericStr = numMatch[0].replace(/,/g, '');
+    const target = parseInt(numericStr, 10);
+    if (isNaN(target)) return;
+
+    const numIndex = originalText.indexOf(numMatch[0]);
+    const prefix = originalText.slice(0, numIndex);
+    const suffix = originalText.slice(numIndex + numMatch[0].length);
+    const useCommas = numMatch[0].includes(',');
+
     const increment = target / (duration / 16);
-    let current = start;
-    
+    let current = 0;
+
     const timer = setInterval(() => {
         current += increment;
         if (current >= target) {
-            element.textContent = target;
+            element.textContent = prefix + (useCommas ? target.toLocaleString() : target) + suffix;
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(current);
+            const val = Math.floor(current);
+            element.textContent = prefix + (useCommas ? val.toLocaleString() : val) + suffix;
         }
     }, 16);
 };
@@ -102,10 +125,7 @@ const statsObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
             entry.target.classList.add('counted');
-            const target = parseInt(entry.target.textContent.replace(/\D/g, ''));
-            if (!isNaN(target)) {
-                animateCounter(entry.target, target);
-            }
+            animateCounter(entry.target);
         }
     });
 }, { threshold: 0.5 });
