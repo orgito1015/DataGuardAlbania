@@ -4,48 +4,88 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });
 });
 
-// Navbar scroll effect
-const nav = document.getElementById('nav');
-let lastScroll = 0;
+// Header scroll effect
+const SCROLL_HEADER_THRESHOLD = 60;
+const ACTIVE_LINK_OFFSET = 100;
+const header = document.getElementById('header');
 
 window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-    
-    if (currentScroll > 100) {
-        nav.classList.add('scrolled');
+    if (window.pageYOffset > SCROLL_HEADER_THRESHOLD) {
+        header.classList.add('scrolled');
     } else {
-        nav.classList.remove('scrolled');
+        header.classList.remove('scrolled');
     }
-    
-    lastScroll = currentScroll;
 });
+
+// Active nav link on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+
+const setActiveLink = () => {
+    const scrollY = window.pageYOffset + ACTIVE_LINK_OFFSET;
+    sections.forEach(section => {
+        const top = section.offsetTop;
+        const height = section.offsetHeight;
+        const id = section.getAttribute('id');
+        const link = document.querySelector(`.nav-links a[href="#${id}"]`);
+        if (link) {
+            if (scrollY >= top && scrollY < top + height) {
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            }
+        }
+    });
+};
+
+window.addEventListener('scroll', setActiveLink, { passive: true });
 
 // Mobile menu toggle
 const mobileMenu = document.getElementById('mobileMenu');
-const navLinks = document.querySelector('.nav-links');
+const navLinksEl = document.querySelector('.nav-links');
 
 const closeMobileMenu = () => {
-    navLinks.classList.remove('open');
+    navLinksEl.classList.remove('open');
     mobileMenu.classList.remove('active');
+    mobileMenu.setAttribute('aria-expanded', 'false');
 };
 
 mobileMenu.addEventListener('click', () => {
-    navLinks.classList.toggle('open');
+    const isOpen = navLinksEl.classList.toggle('open');
     mobileMenu.classList.toggle('active');
+    mobileMenu.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 });
 
-// Close mobile menu on link click
-navLinks.querySelectorAll('a').forEach(link => {
+navLinksEl.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', closeMobileMenu);
 });
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!header.contains(e.target)) {
+        closeMobileMenu();
+    }
+});
+
+// Pricing toggle — monthly / annual
+const monthlyToggle = document.getElementById('monthlyToggle');
+const annualToggle = document.getElementById('annualToggle');
+const priceAmounts = document.querySelectorAll('.price-amount[data-monthly]');
+
+const setPricingPeriod = (period) => {
+    priceAmounts.forEach(el => {
+        el.textContent = el.dataset[period];
+    });
+    monthlyToggle.classList.toggle('active', period === 'monthly');
+    annualToggle.classList.toggle('active', period === 'annual');
+};
+
+monthlyToggle.addEventListener('click', () => setPricingPeriod('monthly'));
+annualToggle.addEventListener('click', () => setPricingPeriod('annual'));
 
 // Contact form submission
 const contactForm = document.getElementById('contactForm');
@@ -58,40 +98,28 @@ contactForm.addEventListener('submit', (e) => {
     setTimeout(() => formSuccess.classList.remove('visible'), 5000);
 });
 
-// Intersection Observer for fade-in animations
-const observerOptions = {
+// Intersection Observer for fade-up animations
+const fadeObserverOptions = {
     threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+    rootMargin: '0px 0px -40px 0px'
 };
 
-const observer = new IntersectionObserver((entries) => {
+const fadeObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
+            entry.target.classList.add('visible');
+            fadeObserver.unobserve(entry.target);
         }
     });
-}, observerOptions);
+}, fadeObserverOptions);
 
-// Observe all sections and cards
-document.querySelectorAll('.problem-card, .module, .market-card, .timeline-item').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
-    observer.observe(el);
-});
-
-// Add parallax effect to hero background
-window.addEventListener('scroll', () => {
-    const scrolled = window.pageYOffset;
-    const heroBg = document.querySelector('.hero-bg');
-    if (heroBg && scrolled < window.innerHeight) {
-        heroBg.style.transform = `translateY(${scrolled * 0.5}px)`;
-    }
+document.querySelectorAll('.problem-card, .module, .market-card, .timeline-item, .pricing-card').forEach(el => {
+    el.classList.add('fade-up');
+    fadeObserver.observe(el);
 });
 
 // Counter animation for stats
-const animateCounter = (element, duration = 2000) => {
+const animateCounter = (element, duration = 1800) => {
     const originalText = element.textContent.trim();
     const numMatch = originalText.match(/[\d,]+/);
     if (!numMatch) return;
@@ -120,7 +148,6 @@ const animateCounter = (element, duration = 2000) => {
     }, 16);
 };
 
-// Observe stats for counter animation
 const statsObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting && !entry.target.classList.contains('counted')) {
@@ -133,3 +160,4 @@ const statsObserver = new IntersectionObserver((entries) => {
 document.querySelectorAll('.stat-number, .impact-stat-number').forEach(stat => {
     statsObserver.observe(stat);
 });
+
